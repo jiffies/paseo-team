@@ -1,0 +1,17 @@
+node_modules/
+coverage/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+.ssh/
+.claude/
+.codex/
+.worktrees/
+backups/
