@@ -1,129 +1,117 @@
 # Paseo Team
 
-让方案和交付都经得起独立审查的 Claude Code Skill。
+Claude 负责方案，Codex 负责实现验证；简单任务直接返回，复杂方案和重要交付再启用独立审查。
 
-当前 Claude 负责主持，复用现有 Architect、Developer、QA Profiles 和官方 Paseo Skills。复杂任务在定方案前进行独立分析与交叉质疑；Codex 实现、测试；最终由全新会话的 Claude 与 Codex 回到原始需求、真实代码和验证证据，分别判断任务是否完成。
+这是面向 **Claude Code + Paseo** 的个人 Skill。复用现有 Architect、Developer、QA Profiles 和官方 Paseo 能力，保持模型、思考档位与权限配置。优化目标是完成原始需求，同时减少总耗时、费用和返工。
 
 ```text
-目标、事实与约束
+明确目标、必需验收与非目标
     ↓
-复杂任务：paseo-committee 独立分析 → 交换论据
+Claude 短方案 ── 关键问题不明确时：独立方案委员会
     ↓
-方案 P 与验收条件 AC
+paseo-handoff → Codex 实现、必要验证、固定候选
     ↓
-paseo-handoff → Developer / Codex 实现、验证
+简单任务：核对结果后返回
+重要交付 / 用户要求 review：独立 Claude + Codex 双审
     ↓
-固定基线 M 与候选 C
-    ↓
-两份 paseo-advisor：独立 Claude + 独立 Codex
-    ↓
-修复或补证据 → 双方重新批准同一候选
-    ↓
-各任务分别合入本地 main
+已授权本地合并时：共同锁内检查 → 快进 main
 ```
 
-简单、局部、验收明确的任务可以省略方案委员会。所有代码交付仍需双审。审查允许发现“该做而没做”的需求，也允许以 `BLOCKED` 保留决定性未知；讨论一致不能替代验收证据。
+**不再要求所有代码交付都双审。** 局部修改、普通原型或演示默认轻量协作；用户可以明确说“不要 review”。省略审查不省略必要验证，也不能把未审查写成已审通过。
 
-## 安装
+## 安装与更新
 
-适用环境是 **Claude Code + Paseo**，主持者是当前 Claude。先按 [Paseo 官方说明](https://paseo.sh/docs/skills) 安装官方 Skills，并准备以下现有 Profiles：
+先安装 [Paseo 官方 Skills](https://paseo.sh/docs/skills)，准备本次工作所需 Profiles：
 
-| Profile   | Provider | 用途                                                            |
-| --------- | -------- | --------------------------------------------------------------- |
-| Architect | Claude   | 当前主持者、新方案成员、新 Claude Reviewer                      |
-| Developer | Codex    | 正式候选唯一写入者，实现与验证                                  |
-| QA        | Codex    | 对照方案成员、新 Codex Reviewer；另起会话时也可执行独立动态验证 |
+| Profile   | Provider | 用途                                    |
+| --------- | -------- | --------------------------------------- |
+| Architect | Claude   | 当前主持者；按需创建方案成员或 Reviewer |
+| Developer | Codex    | 唯一实现者，执行验证和 Git 写操作       |
+| QA        | Codex    | 仅审查或独立验证时需要                  |
 
-所需官方 Skills 为 `paseo`、`paseo-committee`、`paseo-handoff`、`paseo-advisor`；遇到运行问题再使用 `paseo-help`。每次按本机已安装版本读取用法和 Profiles/notes，不写死模型或工具参数。缺少匹配配置时明确报告。
+轻量模式只需要官方 `paseo`、`paseo-handoff`；需要审查时才读取 `paseo-committee`、`paseo-advisor`，异常时再读 `paseo-help`。不为轻量任务要求额外 QA，不自动更换模型或降低思考档位。
 
-在 WSL/Ubuntu 中克隆项目：
+使用 skills CLI 安装到 Claude Code：
+
+```bash
+npx skills add jiffies/paseo-team --skill paseo-team -a claude-code -g
+```
+
+本地源码安装：
 
 ```bash
 git clone https://github.com/jiffies/paseo-team.git
 cd paseo-team
+npx skills add . --skill paseo-team -a claude-code -g
 ```
 
-然后运行以下命令，将旧自定义 Skill 移到 skills 目录之外备份，再安装新版：
+升级前把已有自定义版本备份到 Skills 目录之外。更新源码后重新执行安装命令，确保 `SKILL.md`、`references/`、`scripts/` 一起安装，不只复制入口文件。已运行的会话需明确重新读取新版，或为新任务新建会话；不会强行中断现有任务。
 
-```bash
-(
-  set -eu
-  destination="$HOME/.claude/skills/paseo-team"
-  backup_root="$HOME/.local/state/paseo-team/backups"
-  test -f skills/paseo-team/SKILL.md
-  mkdir -p "$HOME/.claude/skills"
-  if [ -e "$destination" ] || [ -L "$destination" ]; then
-    mkdir -p "$backup_root"
-    backup_dir="$(mktemp -d "$backup_root/backup.XXXXXXXX")"
-    mv -- "$destination" "$backup_dir/paseo-team"
-    printf '旧版备份：%s\n' "$backup_dir/paseo-team"
-  fi
-  cp -R -- skills/paseo-team "$destination"
-)
-```
-
-只安装 `skills/paseo-team/`，不需要安装本项目的 Node.js 开发依赖。升级时在源码目录执行 `git pull --ff-only`，再运行上面的备份与复制命令；不要覆盖其他 Skills 或整个 `.claude/`。备份按需保留，未提供自动删除操作。
+Skill 的运行时工具只需要 Node.js 22+ 和 Git；自动合并额外需要 Linux/WSL 的 `flock`。使用 Skill 无需安装此仓库的 npm 开发依赖。
 
 ## 使用
 
-在本任务独立 worktree Workspace 中，使用 Architect Profile 打开 Claude，输入：
+在 Paseo 中使用 Architect Profile 打开 Claude：
 
 ```text
-/paseo-team 本次目标与约束
+/paseo-team 画一个鹈鹕骑自行车的 3D 动画，做简单合作，完成后返回，不要 review。
 ```
 
-例如：
+普通任务也可以不指定模式，由 Claude 按实际风险简短说明选择：
 
 ```text
-/paseo-team 为订单导出增加日期筛选，保持现有列顺序；
-完成测试和独立双审后合入本地 main，不推送远端。
+/paseo-team 给列表增加空状态提示，沿用已有样式，验证后返回。
 ```
 
-Skill 保留 `disable-model-invocation: true`，仅显式调用；没有 `context: fork`，当前 Claude 持续负责主持。参数通过 `$ARGUMENTS` 传入。个人安装位置和调用方式见 [Claude Code Skills 文档](https://code.claude.com/docs/en/skills)。
-
-更新期间已有任务不必重建 Worker。可在原聊天中说明：
+重要任务或明确需要审查时：
 
 ```text
-重新读取更新后的 paseo-team，保留当前任务、Worker 和候选。
-按新版规则继续；若现有方案有决定性未知，补方案审查再实施。
+/paseo-team 修改订单结算逻辑，先确认方案，完成独立双审后合入本地 main，不推送。
 ```
 
-## 两道关卡
+委员会与交付双审分别决定。复杂或关键假设不明的方案先讨论；资金、权限、迁移、并发/恢复、重要跨模块契约等交付按需双审。用户明确不要 review 时不暗中启动审查者，但保留必要验证和实际授权边界。
 
-| 关卡     | 主要问题                                           | 必须保留的独立性                         |
-| -------- | -------------------------------------------------- | ---------------------------------------- |
-| 方案审查 | 问题定义正确吗？假设成立吗？有没有更简单的方案？   | 两人先收到相同事实并独立分析，再交换论据 |
-| 交付审查 | 原始需求真的完成了吗？真实调用路径和测试能证明吗？ | 两个全新 Reviewer 会话，首轮互不看结论   |
+默认交付候选后返回，已授权时才合入本地 main。已有任务 worktree 直接复用，不重复创建，也不要求每个项目先手填 worktree setup scripts。入口仍是 `/paseo-team`，当前 Claude 保留主持责任，没有新增接单 Agent 或常驻协调器。
 
-两位 Reviewer 都检查“需求 → 实现 → 调用路径 → 可观察行为 → 证据”，不能只读作者摘要或 diff。设计参与者、实现者、独立动态验证者的旧会话不能充当最终 Reviewer。
+## 如何减少耗时与成本
 
-只读 committee/advisor 不运行会写文件的测试。静态检查无法回答的问题，交 Developer 或另起的 QA/Codex 验证任务，在固定候选的隔离副本里运行。
+- 先明确必需验收，防止自行增加需求和过度设计。
+- 根据任务读取必要 Skill，避免反复加载未变的全文。
+- 一次交接目标、路径、验收和约束，独立检查并行执行。
+- 主控处理状态与实质分歧，不重复做第三份全量审查。
+- 成员默认短回报；完整结论留在会话记录，通知截断时补读。
+- 修复复用 Reviewer 会话，复审变化与影响，重新批准同一候选。
+- Git 状态与合并用固定工具执行，不每次生成一次性脚本。
+- 沿用项目检查，纯证据按任务保存在稳定位置，避免只留 `/tmp`。
+- 使用可取得的运行数据记录耗时、token、估算费用、修复轮次；不为统计额外启动审计团队。
 
-方案 P、验收条件 AC、基线 M、候选 C 绑定审查证据。C/M 或实质 P/AC 变化都会使旧批准失效；双方重新批准同一版本后才能交付。最终合并还要求项目已有可靠共同保护，只快进到已审候选；没有保护则报告候选已审、尚未合入。
+不通过降低模型、思考档位或修改全局配置节省费用。token 数不是账单，缓存类型与模型单价应分开计算；并行 Agent 的时长不能直接相加。
 
-## 与官方能力的边界
+## 审查与合并边界
 
-本项目只维护质量政策，**不附带常驻协调器、运行时强制门禁或新的接单入口**，也不修改官方 Skills、Profiles、provider 和全局权限。
+需要审查时，两位新 Reviewer 独立检查“原始需求 → 实现 → 调用路径 → 可观察行为 → 验证证据”，而不是只看作者摘要。设计、实现和独立动态验证者的旧会话不能代替最终 Reviewer。只读角色不运行会写文件的测试，动态验证交 Codex。
 
-- 委员会的独立分析、交叉讨论来自官方 `paseo-committee`；讨论上限、证据标准和保留未知是本项目的政策。
-- 官方 `paseo-handoff` 派出成员后立即返回，不等待或轮询。主 Claude 在之后收到完成通知时继续团队流程；不替用户 detach 成员。
-- 官方 `paseo-advisor` 创建单个顾问。本项目先派出两份审查，再收齐报告，形成独立双审。
-- 同一 Profile 可以启动多个新会话；运行配置相同不代表上下文相同。
-- Full Access 不提供只读隔离，两个 Agent 也可能共享盲点；批准文本不等于程序强制保护。
+候选变化会使原批准失效；双方可做增量复审，但都须确认新候选。有依据的阻断和关键未知不能被预算、投票或完成状态消除。详见 [审查流程](skills/paseo-team/references/review.md)。
 
-仅当用户授权时才 push、部署或操作远端数据。不得读取、打印或上传 `.env` 与其他秘密；普通检查隔离真实凭据。已授权的真实 API 验证允许可信目标程序内部加载配置，但不允许 Agent 检查凭据内容。
+可复用的 [工作流工具](skills/paseo-team/references/tools.md) 将 Git 机械检查合并成一次调用。授权合并时，在 Git common directory 的 `main-publish.lock` 下重新检查 M/C、两个工作树及未完成操作，只快进到固定候选。已有 `herdr-main-publish.lock` 会作为兼容锁一起持有，不调用 Herdr、不删除或改名旧锁。锁忙或状态不符就保留现场并报告。
+
+锁只保护遵守共同协议的写入者，工具也不检查需求或代替 Reviewer 的批准。不得覆盖用户改动，不自动 reset、stash、push、删除 worktree 或部署。
+
+禁止读取、搜索内容、打印、复制或上传 `.env` 和其他秘密。普通检查隔离凭据；明确授权的真实 API 验证仅允许可信目标程序内部加载配置，不允许 Agent 查看凭据内容。
 
 ## 源码与维护
 
 ```text
-skills/paseo-team/SKILL.md  唯一安装入口，完整工作流
-docs/verification.md       验证范围与人工行为评估场景
-scripts/check.mjs          Claude frontmatter 与本地引用检查
-tests/check.test.mjs       校验器行为测试
-.github/workflows/ci.yml   Node.js 自动检查
+skills/paseo-team/SKILL.md              按需协作入口
+skills/paseo-team/references/review.md  委员会与独立双审（按需读取）
+skills/paseo-team/references/tools.md   Git 工具用法（按需读取）
+skills/paseo-team/scripts/workflow.mjs  状态检查与持锁快进，无 npm 依赖
+scripts/check.mjs                     Claude 元数据、Markdown 与引用检查
+tests/                                校验器与临时 Git 仓库集成测试
+docs/verification.md                  验证范围与行为评估
 ```
 
-开发环境使用 Node.js 22 或 24。项目不加载 `.env`，检查无需 Paseo、模型服务或 GitHub 凭据。
+开发使用 Node.js 22 或 24：
 
 ```bash
 npm ci
@@ -132,18 +120,17 @@ npm run check
 npm run ci
 ```
 
-`format` 整理明确列出的源文件；`check` 检查格式、Markdown、JavaScript 语法、Skill 元数据与本地引用；`ci` 加跑校验器测试。依赖锁文件随仓库提交。CI 检查结构与维护工具，无法证明真实多 Agent 行为；行为评估及联动验证要求见 [验证说明](docs/verification.md)。
+检查不加载 `.env` 或调用模型。Git 集成测试只操作临时仓库；CI 验证格式、元数据、引用和工具行为，不代表已跑真实 Claude/Paseo 联动。详见 [验证说明](docs/verification.md)。
 
-此项目由用户提供的 `paseo-team-adversarial-v2.zip` 整理而来：保留原有角色与流程，合并重复规则，明确异步交接、版本绑定和验收边界，增加源码维护检查。没有复制官方 Skill 正文，也没有替用户安装到个人 Skill 目录。
+本项目由用户提供的 `paseo-team-adversarial-v2.zip` 演进而来。v3 将全量双审改为按需启用，增加轻量协作、成本与耗时目标，以及可复用的机械检查；原有独立审查原则仍用于需要它的任务。
 
 ## 官方参考
 
-核对日期：2026-10-20。上游主分支可能变化，实际执行以本机官方 Skill 和工具能力为准。
+实际执行以本机官方 Skill 和实时 Profiles/工具能力为准，不复制上游实现。
 
 - [Paseo 基础 Skill](https://github.com/getpaseo/paseo/blob/main/skills/paseo/SKILL.md)
 - [方案委员会](https://github.com/getpaseo/paseo/blob/main/skills/paseo-committee/SKILL.md)
 - [独立顾问](https://github.com/getpaseo/paseo/blob/main/skills/paseo-advisor/SKILL.md)
 - [任务交接](https://github.com/getpaseo/paseo/blob/main/skills/paseo-handoff/SKILL.md)
 - [Agent Profiles](https://paseo.sh/docs/agent-profiles)
-- [官方 Skills 安装](https://paseo.sh/docs/skills)
 - [Claude Code Skills](https://code.claude.com/docs/en/skills)

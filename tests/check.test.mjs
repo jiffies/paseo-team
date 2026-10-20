@@ -28,6 +28,11 @@ async function fixture(t) {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const root = path.join(directory, "repository");
   await mkdir(root);
+  const references = path.join(root, "skills", "paseo-team", "references");
+  await mkdir(references, { recursive: true });
+  for (const name of ["review.md", "tools.md"]) {
+    await writeFile(path.join(references, name), "# 参考\n");
+  }
   return { directory, root, sourceFile: path.join(root, "README.md") };
 }
 

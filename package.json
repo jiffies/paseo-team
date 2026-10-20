@@ -1,21 +1,21 @@
 {
   "name": "paseo-team",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "面向 Claude Code 的 Paseo 多 Agent 协作与独立审查 Skill",
+  "description": "面向 Claude Code 的 Paseo 轻量协作与按需独立审查 Skill",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "format": "prettier --write README.md skills/paseo-team/SKILL.md docs/verification.md package.json package-lock.json scripts/check.mjs tests/check.test.mjs .prettierrc.json .github/workflows/ci.yml",
-    "format:check": "prettier --check README.md skills/paseo-team/SKILL.md docs/verification.md package.json package-lock.json scripts/check.mjs tests/check.test.mjs .prettierrc.json .github/workflows/ci.yml",
+    "format": "prettier --write README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml",
+    "format:check": "prettier --check README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml",
     "lint": "node scripts/check.mjs --lint",
     "check": "npm run format:check && npm run lint && npm run syntax && npm run check:skill",
-    "test": "node --test tests/check.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "ci": "npm run check && npm test",
     "check:skill": "node scripts/check.mjs",
-    "syntax": "node --check scripts/check.mjs && node --check tests/check.test.mjs"
+    "syntax": "node --check scripts/check.mjs && node --check skills/paseo-team/scripts/workflow.mjs && node --check tests/check.test.mjs && node --check tests/workflow.test.mjs"
   },
   "devDependencies": {
     "markdown-it": "15.0.3",

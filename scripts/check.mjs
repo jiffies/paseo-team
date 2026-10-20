@@ -5,11 +5,13 @@ import MarkdownIt from "markdown-it";
 import { lint } from "markdownlint/promise";
 import { parseDocument } from "yaml";
 
-// 只读取这三份公开文档，不扫描目录，也不读取环境或凭据文件。
+// 只读取明确列出的公开文档，不扫描目录或读取环境/凭据文件。
 export const markdownSources = Object.freeze([
   "README.md",
   "skills/paseo-team/SKILL.md",
   "docs/verification.md",
+  "skills/paseo-team/references/review.md",
+  "skills/paseo-team/references/tools.md",
 ]);
 
 const markdown = new MarkdownIt();
@@ -243,7 +245,7 @@ if (
   } else {
     console.log(
       lintOnly
-        ? "通过：三份公开文档的 Markdown lint 检查。"
+        ? `通过：${markdownSources.length} 份公开文档的 Markdown lint 检查。`
         : "通过：Skill 元数据、模板残留及公开文档的本地链接检查。",
     );
   }
