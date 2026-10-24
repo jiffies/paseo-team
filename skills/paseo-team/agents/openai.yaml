@@ -1,0 +1,6 @@
+interface:
+  display_name: "Paseo Team"
+  short_description: "按主控自动选团队，单开发者实现，按需独立审查"
+  default_prompt: "使用 $paseo-team 完成本次任务，读取我的主控默认团队，未指定审查时采用简单模式。"
+policy:
+  allow_implicit_invocation: false

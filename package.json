@@ -1,21 +1,21 @@
 {
   "name": "paseo-team",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "面向 Claude Code 的 Paseo 轻量协作与按需独立审查 Skill",
+  "description": "按主控选择默认团队、单开发者实现与按需多成员审查的 Paseo Skill",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "format": "prettier --write README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml",
-    "format:check": "prettier --check README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml",
+    "format": "prettier --write README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml \"skills/paseo-team/agents/*.yaml\"",
+    "format:check": "prettier --check README.md \"skills/paseo-team/**/*.md\" \"skills/paseo-team/scripts/*.mjs\" docs/verification.md package.json package-lock.json scripts/check.mjs \"tests/*.test.mjs\" .prettierrc.json .github/workflows/ci.yml \"skills/paseo-team/agents/*.yaml\"",
     "lint": "node scripts/check.mjs --lint",
     "check": "npm run format:check && npm run lint && npm run syntax && npm run check:skill",
     "test": "node --test tests/*.test.mjs",
     "ci": "npm run check && npm test",
     "check:skill": "node scripts/check.mjs",
-    "syntax": "node --check scripts/check.mjs && node --check skills/paseo-team/scripts/workflow.mjs && node --check tests/check.test.mjs && node --check tests/workflow.test.mjs"
+    "syntax": "node --check scripts/check.mjs && node --check skills/paseo-team/scripts/workflow.mjs && node --check tests/check.test.mjs && node --check tests/workflow.test.mjs && node --check skills/paseo-team/scripts/team.mjs && node --check tests/team.test.mjs"
   },
   "devDependencies": {
     "markdown-it": "15.0.3",

@@ -12,6 +12,7 @@ export const markdownSources = Object.freeze([
   "docs/verification.md",
   "skills/paseo-team/references/review.md",
   "skills/paseo-team/references/tools.md",
+  "skills/paseo-team/references/configuration.md",
 ]);
 
 const markdown = new MarkdownIt();
@@ -90,7 +91,7 @@ export function validateSkillFrontmatter(source) {
   }
 
   if (metadata.context === "fork") {
-    errors.push("paseo-team 必须由当前 Claude 主持，不能配置 context: fork。");
+    errors.push("paseo-team 必须由当前主会话主持，不能配置 context: fork。");
   }
 
   const body = source.slice(match[0].length).trim();
@@ -190,6 +191,32 @@ export async function checkRepository(
 ) {
   const errors = [];
   const resolvedRoot = await realpath(root);
+  if (!lintOnly) {
+    try {
+      const metadataPath = await realpath(
+        path.join(root, "skills/paseo-team/agents/openai.yaml"),
+      );
+      if (
+        !isWithin(resolvedRoot, metadataPath) ||
+        isSensitivePath(metadataPath)
+      )
+        throw new Error("无效路径");
+      const document = parseDocument(await readFile(metadataPath, "utf8"), {
+        uniqueKeys: true,
+      });
+      if (
+        document.errors.length ||
+        document.toJS({ maxAliasCount: 20 })?.policy
+          ?.allow_implicit_invocation !== false
+      ) {
+        errors.push(
+          "Codex 元数据必须设置 policy.allow_implicit_invocation: false。",
+        );
+      }
+    } catch {
+      errors.push("Codex 元数据不存在、不可读或无效。");
+    }
+  }
   for (const relative of markdownSources) {
     const sourceFile = path.resolve(root, relative);
     let source;

@@ -30,9 +30,15 @@ async function fixture(t) {
   await mkdir(root);
   const references = path.join(root, "skills", "paseo-team", "references");
   await mkdir(references, { recursive: true });
-  for (const name of ["review.md", "tools.md"]) {
+  for (const name of ["review.md", "tools.md", "configuration.md"]) {
     await writeFile(path.join(references, name), "# 参考\n");
   }
+  const agents = path.join(root, "skills", "paseo-team", "agents");
+  await mkdir(agents);
+  await writeFile(
+    path.join(agents, "openai.yaml"),
+    "policy:\n  allow_implicit_invocation: false\n",
+  );
   return { directory, root, sourceFile: path.join(root, "README.md") };
 }
 
