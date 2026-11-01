@@ -13,6 +13,8 @@ export const markdownSources = Object.freeze([
   "skills/paseo-team/references/review.md",
   "skills/paseo-team/references/tools.md",
   "skills/paseo-team/references/configuration.md",
+  "skills/paseo-team/references/execution.md",
+  "skills/paseo-team/references/checks.md",
 ]);
 
 const markdown = new MarkdownIt();

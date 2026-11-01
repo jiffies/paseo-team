@@ -94,7 +94,7 @@ $paseo-team setup
 
 ## 日常使用：直接说人话
 
-下面使用 Claude 入口；在 Codex 中将 `/paseo-team` 换成 `$paseo-team`。这些是对话中的 Skill 调用，不是在 shell 里执行的命令。
+下面使用 Claude 入口；在 Codex 中将 `/paseo-team` 换成 `$paseo-team`。这些是对话中的 Skill 调用，不是在 shell 里执行的命令。同一任务后续直接说“继续”“修复刚才的问题”即可，无需反复加 Skill 前缀；沿用已冻结的任务与成员。新的无关任务宜新开对话，未结束的任务先保留恢复入口。
 
 ```text
 /paseo-team 给列表增加空状态提示，验证后返回
@@ -183,7 +183,11 @@ Reviewer 保持只读，不运行会写文件的测试；动态证据交开发�
 
 [Git 工作流工具](skills/paseo-team/references/tools.md) 在共同 `main-publish.lock` 内复核状态，兼容旧 `herdr-main-publish.lock`，不依赖 Herdr。锁只协调遵守该协议的写入者，不代替验收或审批。不自动 push、部署、交易、归档或删除 worktree。
 
-当前的效率约定：
+当前的效率约定（保持已选模型和思考档位）：
+
+- **减少重复探索**：明确的小改动由主控给目标、约束和验收，Developer 定位实现；陌生复杂任务复用同一个 Developer 先调研，主控只补读决定性证据。无必要决策时不额外增加调研回合。
+- **按操作加载说明**：普通任务读 [日常执行](skills/paseo-team/references/execution.md)，setup/preset 管理才读完整配置说明；续聊复用现有规则、任务记录和会话。
+- **检查输出先落盘**：[检查输出工具](skills/paseo-team/references/checks.md) 保存完整 stdout/stderr，成功只报状态，失败给有界摘录与原退出码，不用截断后的摘要替代原始证据。
 
 - **交接只给角色所需材料**：保留业务需求和约束，去掉 Skill 调用前缀及已解析的编排参数，不要求成员重新加载整套团队规则。
 - **证据集中索引**：小任务通常保留一份交付索引、测试日志和必要浏览器证据，直接引用可追溯的工具结果。
@@ -200,11 +204,14 @@ Reviewer 保持只读，不运行会写文件的测试；动态证据交开发�
 ```text
 skills/paseo-team/SKILL.md                    协作入口
 skills/paseo-team/agents/openai.yaml          Codex 显式调用设置
-skills/paseo-team/references/configuration.md 配置和命令语义
+skills/paseo-team/references/configuration.md setup、preset 与全局配置管理
+skills/paseo-team/references/execution.md     日常解析、调研、交接与交付
+skills/paseo-team/references/checks.md        普通检查的简洁输出
 skills/paseo-team/references/review.md        多人审查及提示词
 skills/paseo-team/references/tools.md         Git 工具用法
 skills/paseo-team/scripts/team.mjs            配置、选人、保存冲突与任务快照
 skills/paseo-team/scripts/workflow.mjs        Git 状态检查及持锁快进
+skills/paseo-team/scripts/run-check.mjs       完整日志落盘、保留退出码和有界摘录
 tests/                                      配置及临时 Git 仓库测试
 docs/verification.md                        验证范围与限制
 ```

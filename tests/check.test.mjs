@@ -30,7 +30,13 @@ async function fixture(t) {
   await mkdir(root);
   const references = path.join(root, "skills", "paseo-team", "references");
   await mkdir(references, { recursive: true });
-  for (const name of ["review.md", "tools.md", "configuration.md"]) {
+  for (const name of [
+    "review.md",
+    "tools.md",
+    "configuration.md",
+    "execution.md",
+    "checks.md",
+  ]) {
     await writeFile(path.join(references, name), "# 参考\n");
   }
   const agents = path.join(root, "skills", "paseo-team", "agents");
