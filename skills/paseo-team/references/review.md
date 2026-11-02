@@ -4,10 +4,10 @@
 
 ## 发起
 
-- **方案审查**：方案定稿后、实现之前。每位 `planReviewers` 开一个 `paseo-advisor --profile <名称>`，并行发送同一份简报：目标、约束、方案文件路径、验收标准、相关代码路径。
-- **代码审查**：Developer 交付候选之后。每位 `codeReviewers` 新开一个 advisor，不复用方案审查的会话。简报包括：目标、方案路径、候选 commit、worktree、基线、Developer 的检查结果。可以转发审查 Skill，例如 `paseo-advisor --profile <名称> /code-review`。
+- **方案审查**：方案定稿后、实现之前。任务记录中的每位方案审查者开一个 `paseo-advisor --profile <名称>`，并行发送同一份简报：目标、约束、方案文件路径、验收标准、相关代码路径。
+- **代码审查**：Developer 交付候选之后。任务记录中的每位代码审查者新开一个 advisor，不复用方案审查的会话。简报包括：目标、方案路径、候选 commit、worktree、基线、Developer 的检查结果。可以转发审查 Skill，例如 `paseo-advisor --profile <名称> /code-review`。
 - 每份简报都要求先读 `<本 Skill 目录>/references/reviewer.md`，并附上 SKILL.md“安全”一节的原文。首轮不要写入主控自己的倾向或其他审查者的意见。
-- 用户点名了审查者或指定了人数时，按用户的要求。配置的名单不够时报告缺口，不自行替换。
+- 用户点名了审查者或指定了人数时，按用户的要求。本任务的名单不够时报告缺口，不自行替换。
 
 ## 裁决
 

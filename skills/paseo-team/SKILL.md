@@ -1,51 +1,59 @@
 ---
 name: paseo-team
 description: 当前对话作为主控负责根因、架构与关键决策，配置的 Developer 实现与验证，复杂任务自动加入方案与代码的对抗性审查；复用 Paseo 官方 handoff、advisor、committee。
-argument-hint: "[setup | status | 任务描述，可写“需要审查”“不要审查”或点名 Profile]"
+argument-hint: "[setup | status | 任务描述，可写“需要审查”“不要审查”“用 X 组合”或点名 Profile]"
 disable-model-invocation: true
 ---
 
 # Paseo Team
 
-本 Skill 只补充官方 Paseo Skills 没有的部分：角色配置、审查触发与裁决、worktree 占用、子 agent 安全约定和合并工具。派发、建 agent、咨询审查者都使用官方能力。
+本 Skill 只补充官方 Paseo Skills 没有的部分：角色组合、审查触发与裁决、worktree 占用、子 agent 安全约定和合并工具。派发、建 agent、咨询审查者都使用官方能力。
 
 ## 角色
 
 | 角色      | 由谁担任                                           | 职责                                           | 边界                               |
 | --------- | -------------------------------------------------- | ---------------------------------------------- | ---------------------------------- |
 | 主控      | 当前对话，即用户在 Paseo 新建 agent 时选的 Profile | 根因分析、架构与方案、关键决策、审查裁决、验收 | 不写业务代码，不跑测试、不读长日志 |
-| Developer | 配置的 `developer`                                 | 实现、测试、修复；获授权后合并、push、部署     | 候选的唯一写入者                   |
-| 审查者    | 配置的 `planReviewers` / `codeReviewers`           | 独立、只读地评估方案或候选                     | 不修改任何文件                     |
+| Developer | 所选组合的 `developer`                             | 实现、测试、修复；获授权后合并、push、部署     | 候选的唯一写入者                   |
+| 审查者    | 所选组合的 `planReviewers` / `codeReviewers`       | 独立、只读地评估方案或候选                     | 不修改任何文件                     |
 
 主控亲自读代码、找根因，不要让 Developer 先探索再转述，转述会丢失根因线索。只把复现、跑测试、抓日志和大范围机械搜索交给 Developer。
 
 ## 配置
 
-本机本用户共享 `~/.config/paseo-team/config.json`，按 Profile 名称保存。顶层是全局默认，`projects` 按项目路径覆盖：
+本机本用户共享 `~/.config/paseo-team/config.json`，按 Profile 名称保存。一个**组合**包含开发者、方案审查者和代码审查者；全局和每个项目各指定一个默认组合：
 
 ```json
 {
-  "schemaVersion": 2,
-  "developer": "Developer",
-  "planReviewers": ["QA", "pi-deepseek"],
-  "codeReviewers": ["QA", "pi-deepseek"],
-  "projects": {
-    "/home/me/repo-a": { "developer": "pi-deepseek" }
-  }
+  "schemaVersion": 3,
+  "teams": {
+    "标准": {
+      "developer": "Developer",
+      "planReviewers": ["QA", "pi-deepseek"],
+      "codeReviewers": ["QA", "pi-deepseek"]
+    },
+    "省钱": {
+      "developer": "pi-deepseek",
+      "planReviewers": ["QA"],
+      "codeReviewers": ["QA"]
+    }
+  },
+  "default": "标准",
+  "projects": { "/home/me/repo-a": "省钱" }
 }
 ```
 
-- **项目路径**：主仓库检出目录，即 `git rev-parse --path-format=absolute --git-common-dir` 去掉末尾的 `/.git`，因此同一项目的所有 worktree 共用一份项目配置。不是 Git 仓库时用当前目录。
-- **优先级**：本次任务点名 > 项目配置 > 全局配置，逐个角色合并；项目里没写的角色沿用全局。点名不修改配置。Profile 不存在时报告，不自行替换或减少人数。
-- 文件不存在或 `schemaVersion` 不是 2：先执行 setup。
-- `setup`，或用户说“开发换成 X”“审查改用 A、B”：调用 `list_profiles`，用表格列出名称、模型和思考档位；用选择题询问作用范围（当前项目或全局，用户没说明时询问）和要设置的角色，当前生效值或旧配置对应的 Profile 作为推荐项。审查者与 Developer 是同一模型时提醒用户：同源模型容易犯同样的错误。保存前重新读取文件，只改动选定范围内的字段，保留其他项目和全局设置，然后回显结果。setup 不启动任何 agent，也不影响已经开始的任务。
-- `status`：列出当前项目每个角色的生效 Profile、来源（项目或全局）和失效项。
+- **项目路径**：主仓库检出目录，即 `git rev-parse --path-format=absolute --git-common-dir` 去掉末尾的 `/.git`，因此同一项目的所有 worktree 共用同一个默认组合。不是 Git 仓库时用当前目录。
+- **选用顺序**：任务里点名的 Profile > 任务里指定的组合 > 项目默认组合 > 全局默认组合。点名只对本任务生效，不写入配置；点名只涉及部分角色时，其余角色取自按同样顺序选出的组合。Profile 或组合不存在时报告，不自行替换或减少人数。
+- 文件不存在或 `schemaVersion` 不是 3：先执行 setup。旧版配置中的成员作为推荐项转换过来。
+- **setup**：用户说 `setup`，或“新建组合 X：……”“修改组合 X”“这个项目默认用 X”“全局默认用 X”“删除组合 X”。调用 `list_profiles`，用表格列出名称、模型和思考档位；用选择题询问要做的事和缺少的信息，当前值作为推荐项。审查者与 Developer 是同一模型时提醒用户：同源模型容易犯同样的错误。保存前重新读取文件，只改动本次涉及的字段，然后回显结果。仍被全局或项目默认引用的组合不能删除。setup 不启动任何 agent，也不影响已经开始的任务。
+- **status**：列出所有组合，标出全局默认、当前项目默认和当前项目实际生效的组合，以及失效的 Profile。
 
 ## 流程
 
-1. 读取配置，确定本任务成员并写入任务记录。主控分析根因，写出方案和验收标准，保存到任务目录。
+1. 读取配置，按选用顺序确定本任务成员，把组合名和成员写入任务记录。主控分析根因，写出方案和验收标准，保存到任务目录。
 2. 判断是否审查（见下节）。需要方案审查时，在实现前按 [对抗性审查](references/review.md) 进行。
-3. 用官方 `paseo-handoff` 派发 Developer：明确传入配置的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
+3. 用官方 `paseo-handoff` 派发 Developer：明确传入本任务记录中的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
    - 先读并遵守 `<本 Skill 目录>/references/developer.md`（worktree 加锁、检查、回报、合并）；
    - 下方“安全”一节的原文；
    - 本次授权范围：是否允许合并、push、部署。

@@ -31,9 +31,9 @@ codex mcp add paseo --url http://127.0.0.1:6768/mcp/agents
 claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/agents
 ```
 
-## 配置角色
+## 配置组合
 
-在 Paseo 中准备好 Profiles，然后在对话里执行 `/paseo-team setup`（Codex 中为 `$paseo-team setup`）。主控会列出你的 Profiles，用选择题询问作用范围和三个角色，保存到 `~/.config/paseo-team/config.json`：
+一个**组合**包含三个角色，按 Paseo Profile 名称保存在 `~/.config/paseo-team/config.json`：
 
 | 角色            | 作用                   |
 | --------------- | ---------------------- |
@@ -41,12 +41,18 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 | `planReviewers` | 方案审查者，通常两位   |
 | `codeReviewers` | 代码审查者，通常两位   |
 
-- **全局和项目两级**：顶层是全局默认，`projects` 按主仓库路径覆盖，同一项目的所有 worktree 共用。优先级为本次任务点名 > 项目 > 全局，逐个角色合并。
-- 主控不需要配置：你在 Paseo 新建 agent 时选的 Profile 就是主控。
-- 模型换代后，重新 setup，或直接说“这个项目开发换成 X”“全局审查改用 A、B”，不用手改文件。
-- 审查者尽量选和 Developer 不同的模型，同源模型容易犯同样的错误。
+可以保存多个组合，例如“标准”“省钱”。全局和每个项目（按主仓库路径，所有 worktree 共用）各指定一个默认组合。所有配置都在对话中完成，不用手改文件：
 
-`/paseo-team status` 查看当前配置。
+| 你说                                       | 效果                         |
+| ------------------------------------------ | ---------------------------- |
+| `/paseo-team setup`                        | 引导新建、修改组合或设置默认 |
+| “新建组合 省钱：pi-deepseek 开发，QA 审查” | 新建组合                     |
+| “这个项目默认用省钱” / “全局默认用标准”    | 设置默认组合                 |
+| `/paseo-team 用省钱组合，修复 X`           | 本任务使用指定组合           |
+| `/paseo-team 让 pi-deepseek 开发，修复 X`  | 本任务临时点名，不写配置     |
+| `/paseo-team status`                       | 查看组合和当前生效的组合     |
+
+选用顺序：任务里点名 > 任务里指定的组合 > 项目默认 > 全局默认。主控不需要配置，你在 Paseo 新建 agent 时选的 Profile 就是主控。审查者尽量选和 Developer 不同的模型，同源模型容易犯同样的错误。
 
 ## 日常使用
 
@@ -55,6 +61,7 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 /paseo-team 重构结算流程，需要审查
 /paseo-team 修复这个拼写错误，不要审查
 /paseo-team 让 pi-deepseek 开发，QA 和 Architect 审查代码
+/paseo-team 用省钱组合，给设置页加导出按钮
 ```
 
 - **审查何时开启**：你明确要求，或主控判断需求复杂、困难时自动开启，并用一句话说明原因。简单需求或你说“不要审查”时不开。
