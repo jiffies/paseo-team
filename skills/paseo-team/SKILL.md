@@ -90,7 +90,7 @@ Developer 按 `developer.md` 复用空闲 worktree，并用 `git worktree lock` 
 
 - **任务目录**：每个新任务新建 `~/.local/state/paseo-team/<项目目录名>/<YYYYMMDD>-<短名>/`，重名就加后缀；项目已有任务目录约定时用项目的。不写入、也不复用其他任务的目录。
 - **任务记录**：在任务目录记录 task_id、项目路径、本任务成员（Profile 名称）、各 agent ID、worktree、基线和候选 commit、方案与验收路径、证据路径。续聊只按自己的记录恢复，不重新读取配置或重新选人。
-- **区分 agent**：派发和审查时，agent 标题包含 task_id，并加上 labels `task=<task_id>`、`role=developer|plan-reviewer|code-reviewer`。只向本任务记录中的 agent 发消息。
+- **识别 agent**：只认任务记录中的 agent ID。`create_agent` 返回后立即写入记录；续聊、复审、裁决时都按 ID 发消息。标题和 labels（`task=<task_id>`、`role=developer|plan-reviewer|code-reviewer`）可能被修改，只方便人辨认，不能用来查找或判断归属。
 - **共享资源**：主检出目录可能被其他任务共用，主控和 Developer 都不在其中切换分支或修改文件。工作区靠 worktree 锁隔离，合并 main 靠 `workflow.mjs` 的发布锁串行，main 已前进时由 Developer 按 `developer.md` 变基后重新验证。
 
 本次命令或目标：$ARGUMENTS
