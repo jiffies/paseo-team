@@ -30,13 +30,7 @@ async function fixture(t) {
   await mkdir(root);
   const references = path.join(root, "skills", "paseo-team", "references");
   await mkdir(references, { recursive: true });
-  for (const name of [
-    "review.md",
-    "tools.md",
-    "configuration.md",
-    "execution.md",
-    "checks.md",
-  ]) {
+  for (const name of ["review.md", "reviewer.md", "developer.md"]) {
     await writeFile(path.join(references, name), "# 参考\n");
   }
   const agents = path.join(root, "skills", "paseo-team", "agents");
@@ -141,12 +135,10 @@ test("拒绝通过符号链接读取仓库外文档或访问链接目标", async
   await writeFile(outside, "# 仓库之外\n");
   await symlink(outside, sourceFile);
   await mkdir(path.join(root, "skills", "paseo-team"), { recursive: true });
-  await mkdir(path.join(root, "docs"));
   await writeFile(
     path.join(root, "skills", "paseo-team", "SKILL.md"),
     validSkill,
   );
-  await writeFile(path.join(root, "docs", "verification.md"), "# 验证\n");
   assert.ok(
     (await validateMarkdownLinks("[目标](README.md)", sourceFile, root)).length,
   );
@@ -156,16 +148,14 @@ test("拒绝通过符号链接读取仓库外文档或访问链接目标", async
 test("完整仓库验证仅要求明确列出的公开文档", async (t) => {
   const { root } = await fixture(t);
   await mkdir(path.join(root, "skills", "paseo-team"), { recursive: true });
-  await mkdir(path.join(root, "docs"));
   await writeFile(
     path.join(root, "README.md"),
-    "# 项目\n\n[验证](docs/verification.md)\n",
+    "# 项目\n\n[审查](skills/paseo-team/references/review.md)\n",
   );
   await writeFile(
     path.join(root, "skills", "paseo-team", "SKILL.md"),
     validSkill,
   );
-  await writeFile(path.join(root, "docs", "verification.md"), "# 验证\n");
   await writeFile(
     path.join(root, "unrelated.md"),
     "[故意未提供](missing.md)\n",

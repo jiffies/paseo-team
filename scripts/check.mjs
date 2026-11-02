@@ -9,12 +9,9 @@ import { parseDocument } from "yaml";
 export const markdownSources = Object.freeze([
   "README.md",
   "skills/paseo-team/SKILL.md",
-  "docs/verification.md",
   "skills/paseo-team/references/review.md",
-  "skills/paseo-team/references/tools.md",
-  "skills/paseo-team/references/configuration.md",
-  "skills/paseo-team/references/execution.md",
-  "skills/paseo-team/references/checks.md",
+  "skills/paseo-team/references/reviewer.md",
+  "skills/paseo-team/references/developer.md",
 ]);
 
 const markdown = new MarkdownIt();

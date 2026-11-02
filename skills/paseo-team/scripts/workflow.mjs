@@ -102,23 +102,17 @@ export function inspect(options) {
   };
 }
 
-function lockPaths(common) {
-  const legacy = path.join(common, "herdr-main-publish.lock");
-  const locks = [
-    ...(existsSync(legacy) ? [legacy] : []),
-    path.join(common, "main-publish.lock"),
-  ];
-  for (const file of locks) {
-    try {
-      const stat = lstatSync(file);
-      if (!stat.isFile() || stat.isSymbolicLink()) {
-        throw new Error("Publish lock must be a regular file.");
-      }
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
+function lockPath(common) {
+  const file = path.join(common, "main-publish.lock");
+  try {
+    const stat = lstatSync(file);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error("Publish lock must be a regular file.");
     }
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
-  return locks;
+  return file;
 }
 
 // Called by the child process inside flock. This is a mechanical check, not
@@ -133,11 +127,17 @@ export function advanceUnderLock(options) {
   );
   const after = inspect({ ...options, base: before.candidate });
   const success = merge.code === 0 && after.status === "READY";
+  // Release the paseo-team occupancy lock; exit 128 means it was not locked.
+  const worktreeUnlocked =
+    success &&
+    runGit(before.task.root, ["worktree", "unlock", before.task.root], [0, 128])
+      .code === 0;
   return {
     code: success ? 0 : 1,
     report: {
       status: success ? "FAST_FORWARDED" : "POST_MERGE_CHECK_FAILED",
       mergeExitCode: merge.code,
+      worktreeUnlocked,
       before,
       after,
     },
@@ -150,7 +150,7 @@ export function merge(options) {
   if (process.platform !== "linux") {
     throw new Error("Automatic merge requires Linux/WSL and flock.");
   }
-  const locks = lockPaths(before.main.common);
+  const lock = lockPath(before.main.common);
   // Arguments go directly to exec; no shell interpolation or generated files.
   const program = `import { advanceUnderLock } from ${JSON.stringify(import.meta.url)};
 try {
@@ -161,25 +161,19 @@ try {
   console.log(JSON.stringify({ status: "BLOCKED", reason: error.message }));
   process.exitCode = 1;
 }`;
-  let command = [
+  const command = [
+    "--exclusive",
+    "--nonblock",
+    "--conflict-exit-code",
+    "75",
+    lock,
     process.execPath,
     "--input-type=module",
     "-e",
     program,
     JSON.stringify(options),
   ];
-  for (const lock of locks.toReversed()) {
-    command = [
-      "flock",
-      "--exclusive",
-      "--nonblock",
-      "--conflict-exit-code",
-      "75",
-      lock,
-      ...command,
-    ];
-  }
-  const result = spawnSync(command[0], command.slice(1), {
+  const result = spawnSync("flock", command, {
     encoding: "utf8",
     maxBuffer: 2 * 1024 * 1024,
   });
@@ -187,7 +181,7 @@ try {
     throw new Error("Publish lock command unavailable or interrupted.");
   }
   if (result.status === 75) {
-    return { code: 75, report: { status: "LOCK_BUSY", locks } };
+    return { code: 75, report: { status: "LOCK_BUSY", lock } };
   }
   let report;
   try {
@@ -195,7 +189,7 @@ try {
   } catch {
     throw new Error("Publish helper failed without a valid result.");
   }
-  return { code: result.status, report: { ...report, locks } };
+  return { code: result.status, report: { ...report, lock } };
 }
 
 function parseArguments(args) {

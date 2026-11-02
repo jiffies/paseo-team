@@ -87,11 +87,13 @@ test("inspect binds the exact candidate without modifying main", async (t) => {
 
 test("merge fast-forwards the checked candidate, including paths with spaces", async (t) => {
   const f = await fixture(t);
+  git(f.main, "worktree", "lock", "--reason", "paseo-team task", f.task);
   const result = invoke("merge", f);
   assert.equal(result.code, 0);
   assert.equal(result.report.status, "FAST_FORWARDED");
-  assert.equal(result.report.locks.length, 1);
-  assert.equal(path.basename(result.report.locks[0]), "main-publish.lock");
+  assert.equal(result.report.worktreeUnlocked, true);
+  assert.doesNotMatch(git(f.main, "worktree", "list"), /locked/);
+  assert.equal(path.basename(result.report.lock), "main-publish.lock");
   assert.equal(git(f.main, "rev-parse", "HEAD"), f.candidate);
   assert.equal(
     await readFile(path.join(f.main, "feature.txt"), "utf8"),
@@ -162,45 +164,51 @@ test("candidate on a different history cannot be merged", async (t) => {
   assert.equal(git(f.main, "rev-parse", "HEAD"), f.base);
 });
 
-test("both canonical and legacy lock holders block competing merges", async (t) => {
-  for (const name of ["main-publish.lock", "herdr-main-publish.lock"]) {
-    const f = await fixture(t);
-    const lock = path.join(f.main, ".git", name);
-    const holder = spawn(
-      "flock",
-      [
-        lock,
-        process.execPath,
-        "-e",
-        "process.stdout.write('locked'); process.stdin.resume();",
-      ],
-      { stdio: ["pipe", "pipe", "pipe"] },
-    );
-    const exited = once(holder, "exit");
-    try {
-      await once(holder.stdout, "data");
-      const result = invoke("merge", f);
-      assert.equal(result.code, 75);
-      assert.equal(result.report.status, "LOCK_BUSY");
-      assert.equal(git(f.main, "rev-parse", "HEAD"), f.base);
-    } finally {
-      holder.stdin.end();
-      await exited;
-    }
-    const result = invoke("merge", f);
-    assert.equal(result.code, 0);
-    assert.equal(result.report.locks.length, name.startsWith("herdr") ? 2 : 1);
-  }
+test("unlocked task worktree merges and reports no unlock", async (t) => {
+  const f = await fixture(t);
+  const result = invoke("merge", f);
+  assert.equal(result.code, 0);
+  assert.equal(result.report.worktreeUnlocked, false);
 });
 
-test("post-merge hook changes are reported without reset or cleanup", async (t) => {
+test("a publish lock holder blocks competing merges", async (t) => {
   const f = await fixture(t);
+  const lock = path.join(f.main, ".git", "main-publish.lock");
+  const holder = spawn(
+    "flock",
+    [
+      lock,
+      process.execPath,
+      "-e",
+      "process.stdout.write('locked'); process.stdin.resume();",
+    ],
+    { stdio: ["pipe", "pipe", "pipe"] },
+  );
+  const exited = once(holder, "exit");
+  try {
+    await once(holder.stdout, "data");
+    const result = invoke("merge", f);
+    assert.equal(result.code, 75);
+    assert.equal(result.report.status, "LOCK_BUSY");
+    assert.equal(git(f.main, "rev-parse", "HEAD"), f.base);
+  } finally {
+    holder.stdin.end();
+    await exited;
+  }
+  assert.equal(invoke("merge", f).code, 0);
+});
+
+test("post-merge hook changes are reported without reset, cleanup or unlock", async (t) => {
+  const f = await fixture(t);
+  git(f.main, "worktree", "lock", f.task);
   const hook = path.join(f.main, ".git", "hooks", "post-merge");
   await writeFile(hook, "#!/bin/sh\nprintf 'hook change\\n' > base.txt\n");
   await chmod(hook, 0o755);
   const result = invoke("merge", f);
   assert.equal(result.code, 1);
   assert.equal(result.report.status, "POST_MERGE_CHECK_FAILED");
+  assert.equal(result.report.worktreeUnlocked, false);
+  assert.match(git(f.main, "worktree", "list"), /locked/);
   assert.equal(git(f.main, "rev-parse", "HEAD"), f.candidate);
   assert.equal(
     await readFile(path.join(f.main, "base.txt"), "utf8"),

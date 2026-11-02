@@ -1,43 +1,87 @@
 ---
 name: paseo-team
-description: 当前对话负责架构与方案，单开发者实现，按需独立审查的 Paseo 协作；按主控读取默认团队，支持 setup 和 preset。
-argument-hint: "[setup | status | preset save 名称 | --dev 成员 --audit 0/2/3/名单 本次目标]"
+description: 当前对话作为主控负责根因、架构与关键决策，配置的 Developer 实现与验证，复杂任务自动加入方案与代码的对抗性审查；复用 Paseo 官方 handoff、advisor、committee。
+argument-hint: "[setup | status | 任务描述，可写“需要审查”“不要审查”或点名 Profile]"
 disable-model-invocation: true
 ---
 
 # Paseo Team
 
-本 Skill 定义角色、选人和协作接口。成员在职责内自主决定分析方法、实现路径和审查方式。
+本 Skill 只补充官方 Paseo Skills 没有的部分：角色配置、审查触发与裁决、worktree 占用、子 agent 安全约定和合并工具。派发、建 agent、咨询审查者都使用官方能力。
 
 ## 角色
 
-| 角色                             | 职责                                     | 边界                     |
-| -------------------------------- | ---------------------------------------- | ------------------------ |
-| 主控（当前对话，如 Claude/Opus） | 问题分析、架构与方案、关键决策、协调交付 | 不写业务代码、不运行测试 |
-| Developer                        | 代码探索、实现、验证与修复               | 候选的唯一写入者         |
-| Reviewer（按需）                 | 独立评估方案或交付，反馈问题与结论       | 独立会话、只读           |
+| 角色      | 由谁担任                                           | 职责                                           | 边界                               |
+| --------- | -------------------------------------------------- | ---------------------------------------------- | ---------------------------------- |
+| 主控      | 当前对话，即用户在 Paseo 新建 agent 时选的 Profile | 根因分析、架构与方案、关键决策、审查裁决、验收 | 不写业务代码，不跑测试、不读长日志 |
+| Developer | 配置的 `developer`                                 | 实现、测试、修复；获授权后合并、push、部署     | 候选的唯一写入者                   |
+| 审查者    | 配置的 `planReviewers` / `codeReviewers`           | 独立、只读地评估方案或候选                     | 不修改任何文件                     |
 
-保持用户选定的模型、思考档位、模式与权限。默认主控与一个 Developer 合作；只有用户明确选择审查或含审查的 preset 才增加 Reviewer，主控不计入审查人数。仅分析请求由主控处理，不启动写入实现。
+主控亲自读代码、找根因，不要让 Developer 先探索再转述，转述会丢失根因线索。只把复现、跑测试、抓日志和大范围机械搜索交给 Developer。
 
-## 按需加载
+## 配置
 
-Claude 首次用 `/paseo-team`，Codex 首次用 `$paseo-team`。同任务续聊沿用规则、名单与会话，不要求再次调用 Skill。
+本机本用户共享 `~/.config/paseo-team/config.json`，按 Profile 名称保存：
 
-| 当前操作                   | 需要的材料                              |
-| -------------------------- | --------------------------------------- |
-| setup、preset、全局配置    | [配置管理](references/configuration.md) |
-| 新任务派发或恢复执行上下文 | [执行接口](references/execution.md)     |
-| 已选独立审查               | [审查协作](references/review.md)        |
-| 已授权本地合并             | [Git 工具](references/tools.md)         |
+```json
+{
+  "schemaVersion": 2,
+  "developer": "Developer",
+  "planReviewers": ["QA", "pi-deepseek"],
+  "codeReviewers": ["QA", "pi-deepseek"]
+}
+```
 
-本入口供主控使用；成员只接收本角色所需材料，不重新编排团队。按需使用本机官方 `paseo`、`paseo-handoff`、`paseo-committee` / `paseo-advisor`；工具异常再读 `paseo-help`，不复制上游协议。
+- 文件不存在或 `schemaVersion` 不是 2：先执行 setup。
+- `setup`，或用户说“开发换成 X”“审查改用 A、B”：调用 `list_profiles`，用表格列出名称、模型和思考档位；用选择题询问三个角色，当前值或旧配置对应的 Profile 作为推荐项。审查者与 Developer 是同一模型时提醒用户：同源模型容易犯同样的错误。用文件写入工具保存后回显结果。setup 不启动任何 agent。
+- `status`：读取配置，对照 `list_profiles` 列出每个角色当前的 Profile 和失效项。
+- 本次任务中点名的 Profile 优先于配置，但不修改配置。Profile 不存在时报告，不自行替换或减少人数。
 
-## 共同边界
+## 流程
 
-保留任务记录，续聊不重复选人或创建同角色会话；只补读当前阶段缺失的上下文。回报简洁并保留问题、未知和证据入口，完整检查日志可用 [检查输出工具](references/checks.md) 落盘；这些约定不限制模型的分析深度。
+1. 读取配置。主控分析根因，写出方案和验收标准，保存到候选之外的任务目录。
+2. 判断是否审查（见下节）。需要方案审查时，在实现前按 [对抗性审查](references/review.md) 进行。
+3. 用官方 `paseo-handoff` 派发 Developer：明确传入配置的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
+   - 先读并遵守 `<本 Skill 目录>/references/developer.md`（worktree 加锁、检查、回报、合并）；
+   - 下方“安全”一节的原文；
+   - 本次授权范围：是否允许合并、push、部署。
+4. 等待完成通知，不轮询。同一任务的后续工作用 `send_agent_prompt` 发给同一个 Developer。
+5. 需要代码审查时，按 [对抗性审查](references/review.md) 进行。
+6. 验收：主控阅读 Developer 回报和 diff stat，必要时抽查关键 diff，不重跑测试。
+7. 合并、push、部署只在用户授权后由 Developer 执行。
 
-默认返回候选。用户授权后才合并、push 或执行其他外部操作；不覆盖用户改动。已选审查须针对同一版本完成，版本改变后由原成员确认。
+## 何时审查
 
-遵守项目与宿主指令。禁止读取、搜索内容、复制、输出或上传 `.env` 和其他秘密，不输出环境变量全集。普通检查隔离真实凭据；已授权的真实 API 验证仅由检查过无泄密日志的可信程序内部加载配置。
+- **开启**：用户明确要求；或主控判断需求复杂、困难，例如跨模块设计、数据或资金相关、并发、不可逆操作、根因不确定。默认方案和代码两个阶段都审；用户指定了阶段或人数时，按用户的要求。
+- **不开**：简单需求，或用户说不要审查。
+- 自动开启时用一句话说明原因，然后直接进行，不等确认。
 
-本次命令或目标：$ARGUMENTS（Claude 注入参数；其他宿主从显式调用消息读取）
+## Worktree 占用
+
+Developer 按 `developer.md` 复用空闲 worktree，并用 `git worktree lock` 占用，合并成功后自动释放。Developer 报告没有可用 worktree 时：
+
+- 锁原因以 `paseo-team` 开头、分支已并入 main、工作区干净，并且锁原因中的任务已结束或其 Developer 已关闭：主控可让 Developer 解锁后复用。
+- 其他情况不碰锁。主控列出各个锁的原因、时间和是否已合并，由用户决定释放哪个或新建 worktree。
+
+用户放弃任务时，主控让 Developer 确认没有需要保留的改动后再解锁；有未提交的改动时保留锁并报告。
+
+## 官方 Skill 复用
+
+- 派发：`paseo-handoff`。Profile 映射到 `create_agent` 参数的规则见官方 `paseo`。
+- 审查：每位审查者使用一个 `paseo-advisor --profile <名称>`。
+- 根因难以确定或反复失败：可用 `paseo-committee` 一起分析。
+- Paseo 工具异常：`paseo-help`。
+
+与官方 Skill 的两处差异：成员以配置或用户点名为准，不按 notes 自选；审查不使用 committee 的“来回转述直到收敛”。
+
+## 安全
+
+主控遵守以下规则，并把它原文写入每个子 agent 的简报，因为子 agent 未必配置了同样的全局规则：
+
+> 禁止读取、搜索、复制、输出或上传 `.env` 及其他秘密文件；不执行 `env`、`printenv` 等列出全部环境变量的命令；只能检查任务需要的特定变量是否已配置，输出仅限 configured 或 missing。格式化、lint、单元测试隔离真实凭据（`SKIP_DOTENV=true`、`DOTENV_CONFIG_PATH=/dev/null`）。真实 API 验证只能由已检查过、不会打印凭据的可信程序在内部加载配置。凭据存在不代表获准交易、部署、发送消息或修改远程数据。
+
+## 任务记录
+
+在任务目录记录 task_id、各 agent ID、worktree、基线和候选 commit、方案与验收路径、证据路径。续聊复用这些记录和会话，不重新选人。
+
+本次命令或目标：$ARGUMENTS
