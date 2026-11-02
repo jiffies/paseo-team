@@ -4,6 +4,8 @@
 
 ## Worktree 占用
 
+同一项目可能有多个任务并行。主检出目录由各任务共用，不要在其中切换分支或修改文件；所有改动都在本任务加锁的 worktree 里进行。
+
 1. 简报指定了 worktree，或本任务已有 worktree：继续使用，并确认锁原因属于本任务。
 2. 否则在 `git worktree list --porcelain` 中找可复用的 worktree：未加锁、工作区干净、没有进行中的 Git 操作、当前分支已并入 main。然后从 main 新建任务分支。
 3. 立即占用：`git worktree lock --reason "paseo-team <task_id> <YYYY-MM-DD>" <路径>`。命令失败说明已被别人占用，换下一个。
@@ -44,6 +46,8 @@ node <本 Skill 目录>/scripts/workflow.mjs inspect|merge \
 - `merge` 在 Git common directory 的 `main-publish.lock` 下重新检查，然后执行 `git merge --ff-only`，成功后解锁任务 worktree。需要 Linux/WSL 的 `flock`。
 - 检查项：main 仍在基线上，task HEAD 等于候选，候选包含基线，两个工作区都干净且没有进行中的 Git 操作。任何一项不满足就阻止合并；不 stash、不 reset，也不自动解决冲突。
 - 退出码：`0` 成功，`1` 检查未通过或命令失败，`75` 锁忙。非零时保存结果并回报原因。
+- 锁忙时稍后重试一次，仍忙就回报，不要循环等待。
+- main 已前进（`mainAtBase` 为 false）：在任务 worktree 中把候选变基到新的 main，重新运行检查。没有冲突时用新的基线和候选合并；解决过冲突时先回报主控，由主控决定是否复审，再合并。
 - push 和部署按授权范围与项目规则执行。
 
 ## 安全

@@ -33,7 +33,7 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 
 ## 配置角色
 
-在 Paseo 中准备好 Profiles，然后在对话里执行 `/paseo-team setup`（Codex 中为 `$paseo-team setup`）。主控会列出你的 Profiles，用选择题询问三个角色，并保存到 `~/.config/paseo-team/config.json`：
+在 Paseo 中准备好 Profiles，然后在对话里执行 `/paseo-team setup`（Codex 中为 `$paseo-team setup`）。主控会列出你的 Profiles，用选择题询问作用范围和三个角色，保存到 `~/.config/paseo-team/config.json`：
 
 | 角色            | 作用                   |
 | --------------- | ---------------------- |
@@ -41,7 +41,10 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 | `planReviewers` | 方案审查者，通常两位   |
 | `codeReviewers` | 代码审查者，通常两位   |
 
-主控不需要配置：你在 Paseo 新建 agent 时选的 Profile 就是主控。模型换代后，重新 setup，或直接说“开发换成 X”“审查改用 A、B”即可，不用手改文件。审查者尽量选和 Developer 不同的模型，同源模型容易犯同样的错误。
+- **全局和项目两级**：顶层是全局默认，`projects` 按主仓库路径覆盖，同一项目的所有 worktree 共用。优先级为本次任务点名 > 项目 > 全局，逐个角色合并。
+- 主控不需要配置：你在 Paseo 新建 agent 时选的 Profile 就是主控。
+- 模型换代后，重新 setup，或直接说“这个项目开发换成 X”“全局审查改用 A、B”，不用手改文件。
+- 审查者尽量选和 Developer 不同的模型，同源模型容易犯同样的错误。
 
 `/paseo-team status` 查看当前配置。
 
@@ -57,6 +60,7 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 - **审查何时开启**：你明确要求，或主控判断需求复杂、困难时自动开启，并用一句话说明原因。简单需求或你说“不要审查”时不开。
 - **审查方式**：首轮背靠背；阻断意见必须有位置和出错场景；代码争议由 Developer 写测试复现，用证据裁决；方案争议最多两轮，仍有分歧时交给你决定。详见 [对抗性审查](skills/paseo-team/references/review.md)。
 - 同一任务里直接说“继续”“修复刚才的问题”，会沿用原来的成员和会话。
+- **多任务并行**：可以同时开多个主控，做同一项目或不同项目的任务。每个任务有自己的任务目录、成员记录和带 task_id 标签的 agent；任务开始后修改配置不影响它。worktree 锁隔离工作区，发布锁串行合并 main。
 
 ## Worktree 与交付
 
