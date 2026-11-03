@@ -27,7 +27,7 @@ node <本 Skill 目录>/scripts/run-check.mjs --log <任务目录>/ci-1.log -- n
 
 ## 回报
 
-完成后简洁回报，不贴长日志和完整 diff：
+完成后在最后一条回复里简洁回报，主控会自动收到完成通知。不要再用 Paseo 工具另外给主控发消息，否则主控会被唤醒两次，多花一倍 token。不贴长日志和完整 diff：
 
 - 候选的完整 commit、基线、worktree 路径和分支；
 - 做了什么（一段话加 diff stat），以及偏离方案的地方；

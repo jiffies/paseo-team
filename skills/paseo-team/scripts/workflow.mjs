@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 
 const operationFiles = [
   "MERGE_HEAD",
-  "REBASE_HEAD",
   "rebase-apply",
   "rebase-merge",
   "CHERRY_PICK_HEAD",
@@ -218,10 +217,16 @@ function parseArguments(args) {
   return { action, options };
 }
 
-if (
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+// Compare real paths: the skill is often installed behind a symlink.
+function isEntry() {
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntry()) {
   try {
     const { action, options } = parseArguments(process.argv.slice(2));
     const result =

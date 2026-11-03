@@ -119,10 +119,16 @@ export function main(argv) {
   });
 }
 
-if (
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+// Compare real paths: the skill is often installed behind a symlink.
+function isEntry() {
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntry()) {
   try {
     const result = main(process.argv.slice(2));
     console.log(JSON.stringify(result));

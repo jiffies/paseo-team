@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -222,4 +229,34 @@ test("abbreviated or option-like commit IDs are rejected", async (t) => {
     assert.equal(invoke("merge", { ...f, candidate }).code, 1);
     assert.equal(git(f.main, "rev-parse", "HEAD"), f.base);
   }
+});
+
+test("stale REBASE_HEAD after a finished rebase does not block merge", async (t) => {
+  const f = await fixture(t);
+  const stale = path.resolve(
+    f.task,
+    git(f.task, "rev-parse", "--git-path", "REBASE_HEAD"),
+  );
+  await writeFile(stale, `${f.base}\n`);
+  assert.equal(invoke("merge", f).code, 0);
+});
+
+test("runs through a symlinked skill directory", async (t) => {
+  const f = await fixture(t);
+  const link = path.join(f.directory, "linked-skill");
+  await symlink(path.dirname(helper), link);
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(link, "workflow.mjs"),
+      "inspect",
+      ...["main", "task", "base", "candidate"].flatMap((key) => [
+        `--${key}`,
+        f[key],
+      ]),
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).status, "READY");
 });

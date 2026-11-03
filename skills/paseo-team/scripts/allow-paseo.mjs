@@ -7,6 +7,7 @@ import {
   readFileSync,
   renameSync,
   writeFileSync,
+  realpathSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,10 +65,16 @@ export function allowPaseo(root, { check = false } = {}) {
   return { file, missing, added: missing };
 }
 
-if (
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+// Compare real paths: the skill is often installed behind a symlink.
+function isEntry() {
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntry()) {
   const check = process.argv.includes("--check");
   const target =
     process.argv.slice(2).find((arg) => arg !== "--check") ?? process.cwd();

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,4 +73,17 @@ test("invalid JSON is left untouched and never echoed", async (t) => {
   assert.equal(result.code, 2);
   assert.doesNotMatch(result.out, /do-not-print/);
   assert.equal(await readFile(file, "utf8"), broken);
+});
+
+test("works when invoked through a symlinked skill directory", async (t) => {
+  const { root } = await project(t);
+  const link = path.join(root, "linked-skill");
+  await symlink(path.dirname(script), link);
+  const result = spawnSync(
+    process.execPath,
+    [path.join(link, "allow-paseo.mjs"), "--check", root],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^MISSING /);
 });
