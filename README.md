@@ -7,7 +7,7 @@
     ↓ 复杂任务：方案审查（两人背靠背）
 Developer：占用 worktree → 实现 → 验证 → 候选
     ↓ 复杂任务：代码审查（新会话）
-主控验收 → Developer 合并到本地 main → 获授权后 push、部署
+主控验收并合并到本地 main → 获授权后 push、部署
 ```
 
 派发和审查都使用 [Paseo 官方 Skills](https://paseo.sh/docs/skills)（`paseo-handoff`、`paseo-advisor`、`paseo-committee`）。本 Skill 只补充角色配置、审查触发与裁决、worktree 占用、子 agent 安全约定和合并工具。
@@ -36,7 +36,7 @@ Developer：占用 worktree → 实现 → 验证 → 候选
 3. 主控自己分析根因，给出方案。复杂任务会说明已开启审查；方案审查僵持不下时，主控会把双方观点交给你决定。
 4. Developer 在后台实现和验证，你不用盯。完成后主控验收并汇报：做了什么、检查结果、候选 commit、剩余问题。代码审查同样在这一步完成。
 5. 需要修改时直接说“修复……”“继续”，不用再加命令前缀，沿用原来的成员和会话。
-6. 验收和审查通过后，Developer 自动快进合并到本地 main 并释放 worktree。需要 push 或部署时明确授权，例如“push”“部署”；不想合并就在任务里说“只交付候选”。
+6. 验收和审查通过后，主控自动快进合并到本地 main 并释放 worktree；main 已被别的任务推进时，交给 Developer 变基、重跑测试后再合并。需要 push 或部署时明确授权，例如“push”“部署”；不想合并就在任务里说“只交付候选”。
 7. 新的无关任务，新开一个主控 agent。
 
 ### 同时做多个任务
@@ -126,7 +126,7 @@ Claude 的 auto mode 会不定时拦下主控创建 agent、给 agent 发消息�
 
 为节省 Rust 等项目的编译时间和磁盘，Developer 复用空闲的 worktree（未加锁、干净、分支已并入 main），并用 `git worktree lock` 占用。合并成功后自动解锁；会话关闭或崩溃时锁保留。没有可用的 worktree 时，由你决定释放哪个或新建。
 
-验收和审查通过后，Developer 用 `workflow.mjs merge` 持锁快进本地 main 并解锁 worktree；push 和部署需要你另外授权。详见 [Developer 指引](skills/paseo-team/references/developer.md)。
+验收和审查通过后，主控用 `workflow.mjs merge` 持锁快进本地 main 并解锁 worktree；main 已前进时由 Developer 变基后合并；push 和部署需要你另外授权。详见 [Developer 指引](skills/paseo-team/references/developer.md)。
 
 ## 源码与开发
 
