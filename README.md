@@ -7,7 +7,7 @@
     ↓ 复杂任务：方案审查（两人背靠背）
 Developer：占用 worktree → 实现 → 验证 → 候选
     ↓ 复杂任务：代码审查（新会话）
-主控验收 → 获授权后由 Developer 合并、push、部署
+主控验收 → Developer 合并到本地 main → 获授权后 push、部署
 ```
 
 派发和审查都使用 [Paseo 官方 Skills](https://paseo.sh/docs/skills)（`paseo-handoff`、`paseo-advisor`、`paseo-committee`）。本 Skill 只补充角色配置、审查触发与裁决、worktree 占用、子 agent 安全约定和合并工具。
@@ -35,7 +35,7 @@ Developer：占用 worktree → 实现 → 验证 → 候选
 3. 主控自己分析根因，给出方案。复杂任务会说明已开启审查；方案审查僵持不下时，主控会把双方观点交给你决定。
 4. Developer 在后台实现和验证，你不用盯。完成后主控验收并汇报：做了什么、检查结果、候选 commit、剩余问题。代码审查同样在这一步完成。
 5. 需要修改时直接说“修复……”“继续”，不用再加命令前缀，沿用原来的成员和会话。
-6. 满意后明确授权，例如“合并”“合并并 push”“部署”。Developer 执行后，主控汇报结果。没有授权时只交付候选，不合并。
+6. 验收和审查通过后，Developer 自动快进合并到本地 main 并释放 worktree。需要 push 或部署时明确授权，例如“push”“部署”；不想合并就在任务里说“只交付候选”。
 7. 新的无关任务，新开一个主控 agent。
 
 ### 同时做多个任务
@@ -101,6 +101,7 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 ```
 
 - **审查何时开启**：你明确要求，或主控判断需求复杂、困难时自动开启，并用一句话说明原因。简单需求或你说“不要审查”时不开。
+- **审查哪些阶段**：只说“需要审查”时，简单任务只审代码，复杂任务方案和代码都审；也可以指定“只审方案”“两个阶段都审”。
 - **审查方式**：首轮背靠背；阻断意见必须有位置和出错场景；代码争议由 Developer 写测试复现，用证据裁决；方案争议最多两轮，仍有分歧时交给你决定。详见 [对抗性审查](skills/paseo-team/references/review.md)。
 - 同一任务里直接说“继续”“修复刚才的问题”，会沿用原来的成员和会话。
 - **多任务并行**：可以同时开多个主控，做同一项目或不同项目的任务。每个任务有自己的任务目录和成员记录，只按记录中的 agent ID 联系自己的 agent；任务开始后修改配置不影响它。worktree 锁隔离工作区，发布锁串行合并 main。
@@ -109,7 +110,7 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 
 为节省 Rust 等项目的编译时间和磁盘，Developer 复用空闲的 worktree（未加锁、干净、分支已并入 main），并用 `git worktree lock` 占用。合并成功后自动解锁；会话关闭或崩溃时锁保留。没有可用的 worktree 时，由你决定释放哪个或新建。
 
-默认只交付候选。获得授权后，Developer 用 `workflow.mjs merge` 持锁快进 main，再按授权 push 或部署。详见 [Developer 指引](skills/paseo-team/references/developer.md)。
+验收和审查通过后，Developer 用 `workflow.mjs merge` 持锁快进本地 main 并解锁 worktree；push 和部署需要你另外授权。详见 [Developer 指引](skills/paseo-team/references/developer.md)。
 
 ## 源码与开发
 

@@ -34,7 +34,9 @@ node <本 Skill 目录>/scripts/run-check.mjs --log <任务目录>/ci-1.log -- n
 - 实际运行的检查命令、结果和日志路径；
 - 问题、未知和风险。
 
-## 合并（仅在用户授权后）
+## 合并（收到主控通知后）
+
+交付候选时不要自行合并，等主控验收（和审查）通过后通知你再合并到本地 main。push 和部署只按简报中的授权范围执行。
 
 ```bash
 node <本 Skill 目录>/scripts/workflow.mjs inspect|merge \
@@ -48,7 +50,6 @@ node <本 Skill 目录>/scripts/workflow.mjs inspect|merge \
 - 退出码：`0` 成功，`1` 检查未通过或命令失败，`75` 锁忙。非零时保存结果并回报原因。
 - 锁忙时稍后重试一次，仍忙就回报，不要循环等待。
 - main 已前进（`mainAtBase` 为 false）：在任务 worktree 中把候选变基到新的 main，重新运行检查。没有冲突时用新的基线和候选合并；解决过冲突时先回报主控，由主控决定是否复审，再合并。
-- push 和部署按授权范围与项目规则执行。
 
 ## 安全
 
