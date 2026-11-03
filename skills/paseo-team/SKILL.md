@@ -61,6 +61,7 @@ disable-model-invocation: true
 2. 判断是否审查（见下节）。需要方案审查时，在实现前按 [对抗性审查](references/review.md) 进行。
 3. 用官方 `paseo-handoff` 派发 Developer：明确传入本任务记录中的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
    - 先读并遵守 `<本 Skill 目录>/references/developer.md`（worktree 加锁、检查、回报、合并）；
+   - task_id 和任务目录（检查日志写到这里，不写 `/tmp`）；
    - 下方“安全”一节的原文；
    - 本次授权范围：是否允许 push、部署；用户要求只交付候选时也写明。
 4. 等待完成通知，不轮询。同一任务的后续工作用 `send_agent_prompt` 发给同一个 Developer。
