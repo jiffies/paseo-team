@@ -15,7 +15,7 @@
     "test": "node --test tests/*.test.mjs",
     "ci": "npm run check && npm test",
     "check:skill": "node scripts/check.mjs",
-    "syntax": "node --check scripts/check.mjs && node --check skills/paseo-team/scripts/workflow.mjs && node --check tests/check.test.mjs && node --check tests/workflow.test.mjs && node --check skills/paseo-team/scripts/run-check.mjs && node --check tests/run-check.test.mjs"
+    "syntax": "node --check scripts/check.mjs && node --check skills/paseo-team/scripts/workflow.mjs && node --check tests/check.test.mjs && node --check tests/workflow.test.mjs && node --check skills/paseo-team/scripts/run-check.mjs && node --check tests/run-check.test.mjs && node --check skills/paseo-team/scripts/allow-paseo.mjs && node --check tests/allow-paseo.test.mjs"
   },
   "devDependencies": {
     "markdown-it": "15.0.3",

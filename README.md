@@ -27,6 +27,7 @@ Developer：占用 worktree → 实现 → 验证 → 候选
 1. 按下文[安装](#安装)装好本 Skill，并在 Paseo 中开启 Paseo tools。
 2. 在 Paseo 中准备 Profiles：一个给主控（例如 Claude Opus high），一个给开发（例如 Codex），一到两个给审查，审查者最好与开发用不同模型。
 3. 新建任意 agent，执行 `/paseo-team setup`，按提示建一个组合并设为全局默认。某个项目需要不同成员时，在该项目目录下再说一句“这个项目默认用 X”。
+4. 主控是 Claude 且用 auto mode 时，setup 会检查当前项目是否已放行创建 agent 和给 agent 发消息。没放行时，它会解释原因和代价，并给出一条命令，由你自己执行（见[项目权限](#项目权限)）。每个项目只需一次。
 
 ### 每个任务
 
@@ -106,6 +107,21 @@ claude mcp add --transport http --scope user paseo http://127.0.0.1:6768/mcp/age
 - 同一任务里直接说“继续”“修复刚才的问题”，会沿用原来的成员和会话。
 - **多任务并行**：可以同时开多个主控，做同一项目或不同项目的任务。每个任务有自己的任务目录和成员记录，只按记录中的 agent ID 联系自己的 agent；任务开始后修改配置不影响它。worktree 锁隔离工作区，发布锁串行合并 main。
 
+## 项目权限
+
+Claude 的 auto mode 会不定时拦下主控创建 agent、给 agent 发消息，任务因此中断。Claude Code 不允许 agent 放宽自己的权限，即使你在对话里同意也不行，所以这一步要由你自己执行：
+
+```bash
+# 在 Claude Code 中输入（! 开头表示由你本人执行）；或在终端的项目目录里去掉 ! 执行
+! node ~/.agents/skills/paseo-team/scripts/allow-paseo.mjs
+```
+
+- **做什么**：只往当前项目的 `.claude/settings.local.json` 追加 `mcp__paseo__create_agent` 和 `mcp__paseo__send_agent_prompt` 两条 allow 规则。已有就跳过；其他配置原样保留；文件不是有效 JSON 时不做任何修改；不输出文件内容。
+- **影响范围**：只影响这个项目。这个文件通常被 git 忽略；没被忽略时脚本会提醒你不要提交。
+- **代价**：在这个项目里，主控创建 agent 和发消息不再经过 auto mode 检查，比如“交给 Developer 去部署”不会再被拦，防止越权部署只靠本 Skill 的授权规则。其他操作照常检查。
+- **撤销**：从该文件的 `permissions.allow` 删掉这两项。
+- `--check` 只检查不修改：输出 `OK` 或 `MISSING …`。
+
 ## Worktree 与交付
 
 为节省 Rust 等项目的编译时间和磁盘，Developer 复用空闲的 worktree（未加锁、干净、分支已并入 main），并用 `git worktree lock` 占用。合并成功后自动解锁；会话关闭或崩溃时锁保留。没有可用的 worktree 时，由你决定释放哪个或新建。
@@ -121,6 +137,7 @@ skills/paseo-team/references/developer.md Developer 指引：worktree、检查�
 skills/paseo-team/references/reviewer.md  审查者指引：只读、证据、结论格式
 skills/paseo-team/scripts/workflow.mjs    Git 状态检查、持锁快进、合并后解锁
 skills/paseo-team/scripts/run-check.mjs   检查日志落盘、保留退出码和有界摘录
+skills/paseo-team/scripts/allow-paseo.mjs 由用户执行：为当前项目放行 Paseo 派发权限
 skills/paseo-team/agents/openai.yaml      Codex 显式调用设置
 ```
 

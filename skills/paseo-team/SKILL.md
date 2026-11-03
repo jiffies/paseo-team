@@ -47,6 +47,12 @@ disable-model-invocation: true
 - **选用顺序**：任务里点名的 Profile > 任务里指定的组合 > 项目默认组合 > 全局默认组合。点名只对本任务生效，不写入配置；点名只涉及部分角色时，其余角色取自按同样顺序选出的组合。Profile 或组合不存在时报告，不自行替换或减少人数。
 - 文件不存在或 `schemaVersion` 不是 3：先执行 setup。旧版配置中的成员作为推荐项转换过来。
 - **setup**：用户说 `setup`，或“新建组合 X：……”“修改组合 X”“这个项目默认用 X”“全局默认用 X”“删除组合 X”。调用 `list_profiles`，用表格列出名称、模型和思考档位；用选择题询问要做的事和缺少的信息，当前值作为推荐项。审查者与 Developer 是同一模型时提醒用户：同源模型容易犯同样的错误。保存前重新读取文件，只改动本次涉及的字段，然后回显结果。仍被全局或项目默认引用的组合不能删除。setup 不启动任何 agent，也不影响已经开始的任务。
+- **项目权限（仅 Claude 主控）**：setup 结束时运行 `node <本 Skill 目录>/scripts/allow-paseo.mjs --check`，只检查、不修改。输出 `OK` 就不提。输出 `MISSING` 时，向用户说明以下内容，并给出命令 `! node <本 Skill 目录>/scripts/allow-paseo.mjs`，请用户自己执行（Paseo 界面不支持 `!` 时在终端的项目目录里执行，去掉 `!`）：
+  - **为什么需要**：auto mode 会不定时拦下主控创建 agent、给 agent 发消息，任务因此中断，需要用户确认后重试。
+  - **它做什么**：只往当前项目的 `.claude/settings.local.json` 的 `permissions.allow` 追加 `mcp__paseo__create_agent` 和 `mcp__paseo__send_agent_prompt`。已有就跳过；其他配置原样保留；文件不是有效 JSON 时不做任何修改；不输出文件内容。只影响这个项目。
+  - **代价**：在这个项目里，主控创建 agent 和发消息不再经过 auto mode 检查，例如“交给 Developer 去部署”这一步不会再被拦，防止越权部署只靠本 Skill 的授权规则。其他操作照常检查。
+  - **为什么要用户执行**：Claude Code 不允许 agent 放宽自己的权限，对话中的授权也不算，主控执行会被拦下。主控不得自己运行它，也不要换方式绕过。
+  - **怎么撤销**：从该文件的 `permissions.allow` 删掉这两项。
 - **status**：列出所有组合，标出全局默认、当前项目默认和当前项目实际生效的组合，以及失效的 Profile。
 
 ## 流程
