@@ -14,7 +14,7 @@
 
 ## 检查
 
-按项目要求验证。输出冗长的格式化、lint、单元测试或 CI，用 `scripts/run-check.mjs` 把完整日志写入候选之外的任务目录：
+按项目要求验证。提交时不要绕过 git hooks（例如 `--no-verify`、`core.hooksPath=/dev/null`），hook 失败就修复，修不了就回报。输出冗长的格式化、lint、单元测试或 CI，用 `scripts/run-check.mjs` 把完整日志写入候选之外的任务目录：
 
 ```bash
 node <本 Skill 目录>/scripts/run-check.mjs --log <任务目录>/ci-1.log -- npm run ci
