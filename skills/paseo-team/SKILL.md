@@ -63,7 +63,8 @@ disable-model-invocation: true
 
 1. 读取配置，按选用顺序确定本任务成员，把组合名和成员写入任务记录。主控确定方向、方案和验收标准（复杂或高风险问题先亲自定根因），保存到任务目录。
 2. 判断是否审查（见下节）。需要方案审查时，在实现前按 [对抗性审查](references/review.md) 进行。
-3. 用官方 `paseo-handoff` 派发 Developer：明确传入本任务记录中的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
+3. **创建任何子 agent（Developer、审查者、分析者）之前，先调用 `list_profiles`**，按 Profile 名称读取当前的 provider、model、modeId、thinkingOptionId、featureValues。任务记录和旧任务目录里的快照（例如 `team.json`）只用来确认派谁，不用来取这些设置，因为用户可能已经修改了 Profile。
+   用官方 `paseo-handoff` 派发 Developer：明确传入本任务记录中的 Profile 名称，使用当前 workspace，不另建 worktree。简报在官方模板之外还必须包含：
    - 先读并遵守 `<本 Skill 目录>/references/developer.md`（worktree 加锁、检查、回报、合并）；
    - task_id 和任务目录（检查日志写到这里，不写 `/tmp`）；
    - 下方“安全”一节的原文；
