@@ -69,9 +69,9 @@ disable-model-invocation: true
    - task_id 和任务目录（检查日志写到这里，不写 `/tmp`）；
    - 下方“安全”一节的原文；
    - 本次授权范围：是否允许 push、部署；用户要求只交付候选时也写明。
-4. 等待完成通知，不轮询。同一任务的后续工作用 `send_agent_prompt` 发给同一个 Developer。
+4. 等待完成通知，不轮询。不要求 Developer 定时或按阈值汇报进展，也不为此创建 heartbeat，除非用户要求。同一任务的后续工作用 `send_agent_prompt` 发给同一个 Developer。
 5. 需要代码审查时，按 [对抗性审查](references/review.md) 进行。
-6. 验收：主控阅读 Developer 回报和 diff stat，必要时抽查关键 diff，不重跑测试。
+6. 验收：主控按 Developer 回报和 diff stat 验收，只有核对证据时才抽读任务目录文件或关键 diff，不重跑测试。回报缺少应附的性能对比、性能退化，或没写架构影响时，验收不通过、不合并；用户明确豁免的写进任务记录。
 7. 验收通过，并且选了代码审查的也已通过后，主控自己运行 `node <本 Skill 目录>/scripts/workflow.mjs merge --main <主检出目录> --task <worktree> --base <基线> --candidate <候选>`，快进合并到本地 main，成功后自动解锁 worktree，不必再唤醒 Developer。返回 `BLOCKED` 且 `mainAtBase` 为 false 时，才通知 Developer 按 `developer.md` 变基、重跑检查后合并；其他 `BLOCKED` 或锁忙时报告原因。用户说过“不要合并”“只交付候选”时跳过这一步。push 和部署只在用户授权后执行。
 
 ## 何时审查
@@ -109,7 +109,7 @@ Developer 按 `developer.md` 复用空闲 worktree，并用 `git worktree lock` 
 同一项目或不同项目可能同时有多个主控在运行，每个主控只管理自己的任务：
 
 - **任务目录**：每个新任务新建 `~/.local/state/paseo-team/<项目目录名>/<YYYYMMDD>-<短名>/`，重名就加后缀；项目已有任务目录约定时用项目的。不写入、也不复用其他任务的目录。
-- **任务记录**：在任务目录记录 task_id、项目路径、本任务成员（Profile 名称）、各 agent ID、worktree、基线和候选 commit、方案与验收路径、证据路径。续聊只按自己的记录恢复，不重新读取配置或重新选人。
+- **任务记录**：在任务目录记录 task_id、项目路径、本任务成员（Profile 名称）、各 agent ID、worktree、基线和候选 commit、方案与验收路径、证据路径，以及用户给出的验收门禁及各自状态（通过、未做、豁免）。还有未做的门禁时，主控不宣布任务完成，而是列出剩余门禁和下一步建议。续聊只按自己的记录恢复，不重新读取配置或重新选人。
 - **识别 agent**：只认任务记录中的 agent ID。`create_agent` 返回后立即写入记录；续聊、复审、裁决时都按 ID 发消息。标题和 labels（`task=<task_id>`、`role=developer|plan-reviewer|code-reviewer`）可能被修改，只方便人辨认，不能用来查找或判断归属。
 - **共享资源**：主检出目录可能被其他任务共用，主控和 Developer 都不在其中切换分支或修改文件。工作区靠 worktree 锁隔离，合并 main 靠 `workflow.mjs` 的发布锁串行，main 已前进时由 Developer 按 `developer.md` 变基后重新验证。
 
