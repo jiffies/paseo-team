@@ -7,6 +7,7 @@
 [![CI](https://github.com/jiffies/paseo-team/actions/workflows/ci.yml/badge.svg)](https://github.com/jiffies/paseo-team/actions/workflows/ci.yml)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)
 ![Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex-6E56CF)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [快速开始](#快速开始) · [工作原理](#工作原理) · [配置](#配置组合) · [审查机制](#审查机制) · [安全](#安全与权限) · [开发](#开发)
 
@@ -258,3 +259,7 @@ npm run ci       # 格式、lint、Skill 校验、语法检查、单元测试
 ## 致谢
 
 基于 [Paseo](https://paseo.sh) 与其官方 Skills 构建。
+
+## 许可证
+
+[MIT](LICENSE) © 2026 jiffies

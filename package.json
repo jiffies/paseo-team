@@ -2,6 +2,7 @@
   "name": "paseo-team",
   "version": "5.0.0",
   "private": true,
+  "license": "MIT",
   "description": "主控做架构与决策、配置的 Developer 实现、复杂任务自动对抗性审查的 Paseo Skill",
   "type": "module",
   "engines": {
